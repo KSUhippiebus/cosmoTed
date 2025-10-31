@@ -30,7 +30,7 @@ def get_live_video_id(channel_id):
 
 # ---------------------------
 #config
-handle = "@CosmoTed"  # Replace with target handle
+handle = "@TylerBednarik"  # Replace with target handle
 channel_id = get_channel_id_from_handle(handle)
 
 if not channel_id:
@@ -127,3 +127,4 @@ if not DEBUG:
             print("\nStopped by user.")
 else:
     pingForVideo("X4VjzN8Z7Bw")
+
