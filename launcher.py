@@ -2,6 +2,7 @@ import requests
 import tkinter as tk
 from tkinter import ttk, messagebox
 import subprocess
+import os
 
 # --------------------------
 # CONFIG
@@ -30,24 +31,28 @@ def fetch_py_files():
         messagebox.showerror("Error", f"Failed to fetch file list:\n{e}")
         return []
 
+# Folder of the launcher file
+LAUNCHER_DIR = os.path.dirname(os.path.abspath(__file__))
+
 def run_script_in_cmd(file_path):
-    """Download the Python file and run it in a new CMD window"""
     raw_url = f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/{BRANCH}/{file_path}"
     try:
+        # Save the script in the same folder as the launcher
+        local_path = os.path.join(LAUNCHER_DIR, os.path.basename(file_path))
+
         r = requests.get(raw_url)
         r.raise_for_status()
-        # Save temporarily
-        temp_filename = file_path.replace("/", "_")  # avoid subfolders
-        with open(temp_filename, "w", encoding="utf-8") as f:
+        with open(local_path, "w", encoding="utf-8") as f:
             f.write(r.text)
-        # Run in new cmd window
+
+        # Run the script in a new CMD window with cwd = launcher folder
         subprocess.Popen(
-            ["python", temp_filename],
+            ["python", os.path.basename(local_path)],
+            cwd=LAUNCHER_DIR,
             creationflags=subprocess.CREATE_NEW_CONSOLE
         )
     except Exception as e:
-        messagebox.showerror("Error", f"Failed to run {file_path}:\n{e}")
-
+        print(f"Failed to run {file_path}: {e}")
 # --------------------------
 # TKINTER GUI
 # --------------------------
