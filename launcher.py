@@ -1,7 +1,7 @@
 import requests
 import tkinter as tk
-from tkinter import ttk, messagebox, scrolledtext
-import threading
+from tkinter import ttk, messagebox
+import subprocess
 
 # --------------------------
 # CONFIG
@@ -9,7 +9,7 @@ import threading
 GITHUB_USER = "KSUhippiebus"
 GITHUB_REPO = "cosmoTed"
 BRANCH = "main"
-EXCLUDE_FILE = "launcher.py"  # file to skip
+EXCLUDE_FILE = "launcher.py"
 # --------------------------
 
 API_URL = f"https://api.github.com/repos/{GITHUB_USER}/{GITHUB_REPO}/git/trees/{BRANCH}?recursive=1"
@@ -30,33 +30,23 @@ def fetch_py_files():
         messagebox.showerror("Error", f"Failed to fetch file list:\n{e}")
         return []
 
-def run_script(file_path):
-    """Download and execute a Python file from GitHub"""
+def run_script_in_cmd(file_path):
+    """Download the Python file and run it in a new CMD window"""
     raw_url = f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/{BRANCH}/{file_path}"
     try:
         r = requests.get(raw_url)
         r.raise_for_status()
-        code = r.text
-        # Optional: show the code in a window
-        show_code_window(file_path, code)
-        # Execute in separate namespace
-        namespace = {}
-        exec(code, namespace)
+        # Save temporarily
+        temp_filename = file_path.replace("/", "_")  # avoid subfolders
+        with open(temp_filename, "w", encoding="utf-8") as f:
+            f.write(r.text)
+        # Run in new cmd window
+        subprocess.Popen(
+            ["python", temp_filename],
+            creationflags=subprocess.CREATE_NEW_CONSOLE
+        )
     except Exception as e:
         messagebox.showerror("Error", f"Failed to run {file_path}:\n{e}")
-
-def show_code_window(title, code):
-    """Show the Python code in a scrollable window"""
-    win = tk.Toplevel(root)
-    win.title(f"{title} — Code")
-    txt = scrolledtext.ScrolledText(win, wrap=tk.NONE, width=80, height=30)
-    txt.insert(tk.END, code)
-    txt.configure(state="disabled")
-    txt.pack(fill=tk.BOTH, expand=True)
-
-def on_button_click(path):
-    # Run in a separate thread so UI remains responsive
-    threading.Thread(target=run_script, args=(path,), daemon=True).start()
 
 # --------------------------
 # TKINTER GUI
@@ -73,9 +63,7 @@ scrollable_frame = ttk.Frame(canvas)
 
 scrollable_frame.bind(
     "<Configure>",
-    lambda e: canvas.configure(
-        scrollregion=canvas.bbox("all")
-    )
+    lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
 )
 
 canvas_frame = canvas.create_window((0,0), window=scrollable_frame, anchor="nw")
@@ -91,7 +79,7 @@ if not files:
 else:
     for fpath in files:
         btn = ttk.Button(scrollable_frame, text=fpath,
-                         command=lambda p=fpath: on_button_click(p))
+                         command=lambda p=fpath: run_script_in_cmd(p))
         btn.pack(fill="x", pady=2)
 
 root.mainloop()
